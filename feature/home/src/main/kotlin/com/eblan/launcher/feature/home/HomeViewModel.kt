@@ -17,6 +17,7 @@
  */
 package com.eblan.launcher.feature.home
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eblan.launcher.domain.common.IconKeyGenerator
@@ -73,12 +74,17 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.File
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 internal class HomeViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     getHomeDataUseCase: GetHomeDataUseCase,
     private val moveGridItemUseCase: MoveGridItemUseCase,
     private val resizeGridItemUseCase: ResizeGridItemUseCase,
@@ -107,6 +113,24 @@ internal class HomeViewModel @Inject constructor(
     private val moveFolderGridItemUseCase: MoveFolderGridItemUseCase,
     private val iconKeyGenerator: IconKeyGenerator,
 ) : ViewModel() {
+    private val json = Json {
+        ignoreUnknownKeys = true
+    }
+
+    private val restoredPendingGridItemSource = if (
+        savedStateHandle.get<String>(PENDING_GRID_ITEM_SOURCE_KEY) == PENDING_GRID_ITEM_SOURCE_NEW
+    ) {
+        GridItemSource.New
+    } else {
+        null
+    }
+
+    private val restoredPendingMoveGridItemResult = if (restoredPendingGridItemSource != null) {
+        getSavedMoveGridItemResult()
+    } else {
+        null
+    }
+
     val homeUiState = getHomeDataUseCase().map(HomeUiState::Success).stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -117,7 +141,7 @@ internal class HomeViewModel @Inject constructor(
 
     val screen = _screen.asStateFlow()
 
-    private val _moveGridItemResult = MutableStateFlow<MoveGridItemResult?>(null)
+    private val _moveGridItemResult = MutableStateFlow(restoredPendingMoveGridItemResult)
 
     val movedGridItemResult = _moveGridItemResult.asStateFlow()
 
@@ -210,13 +234,86 @@ internal class HomeViewModel @Inject constructor(
 
     val resizeGridItem = _resizeGridItem.asStateFlow()
 
-    private val _gridItemSource = MutableStateFlow<GridItemSource?>(null)
+    private val _gridItemSource = MutableStateFlow<GridItemSource?>(
+        if (restoredPendingMoveGridItemResult != null) restoredPendingGridItemSource else null,
+    )
 
     val gridItemSource = _gridItemSource.asStateFlow()
+
+    private val _updatedWidgetGridItem = MutableStateFlow(
+        if (restoredPendingMoveGridItemResult != null) getSavedUpdatedWidgetGridItem() else null,
+    )
+
+    val updatedWidgetGridItem = _updatedWidgetGridItem.asStateFlow()
 
     private val _isVisibleOverlay = MutableStateFlow(false)
 
     val isVisibleOverlay = _isVisibleOverlay.asStateFlow()
+
+    private fun getSavedMoveGridItemResult(): MoveGridItemResult? =
+        savedStateHandle.get<String>(PENDING_MOVE_GRID_ITEM_RESULT_KEY)?.let { value ->
+            decodeSavedValue<MoveGridItemResult>(value)
+        }
+
+    private fun getSavedUpdatedWidgetGridItem(): GridItem? =
+        savedStateHandle.get<String>(PENDING_UPDATED_WIDGET_GRID_ITEM_KEY)?.let { value ->
+            decodeSavedValue<GridItem>(value)
+        }
+
+    private inline fun <reified T> decodeSavedValue(value: String): T? =
+        try {
+            json.decodeFromString<T>(value)
+        } catch (_: SerializationException) {
+            null
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+
+    fun updatePendingWidgetPlacement(
+        moveGridItemResult: MoveGridItemResult,
+        gridItemSource: GridItemSource,
+    ) {
+        if (moveGridItemResult.movingGridItem.data !is GridItemData.Widget ||
+            gridItemSource !is GridItemSource.New
+        ) {
+            return
+        }
+
+        savedStateHandle[PENDING_MOVE_GRID_ITEM_RESULT_KEY] = json.encodeToString(moveGridItemResult)
+        savedStateHandle[PENDING_GRID_ITEM_SOURCE_KEY] = PENDING_GRID_ITEM_SOURCE_NEW
+
+        _moveGridItemResult.update {
+            moveGridItemResult
+        }
+
+        _gridItemSource.update {
+            gridItemSource
+        }
+    }
+
+    private fun clearPendingWidgetPlacement() {
+        savedStateHandle.remove<String>(PENDING_MOVE_GRID_ITEM_RESULT_KEY)
+        savedStateHandle.remove<String>(PENDING_UPDATED_WIDGET_GRID_ITEM_KEY)
+        savedStateHandle.remove<String>(PENDING_GRID_ITEM_SOURCE_KEY)
+
+        _updatedWidgetGridItem.update {
+            null
+        }
+    }
+
+    private fun clearPendingWidgetPlacementIfMatches(gridItem: GridItem) {
+        if (_moveGridItemResult.value?.movingGridItem?.id == gridItem.id) {
+            clearPendingWidgetPlacement()
+
+            _moveGridItemResult.update {
+                null
+            }
+
+            _gridItemSource.update {
+                null
+            }
+        }
+    }
 
     fun moveGridItem(
         movingGridItem: GridItem,
@@ -322,6 +419,8 @@ internal class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             moveGridItemJob?.cancelAndJoin()
 
+            clearPendingWidgetPlacement()
+
             _moveGridItemResult.update {
                 null
             }
@@ -348,6 +447,8 @@ internal class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             moveGridItemJob?.cancelAndJoin()
 
+            clearPendingWidgetPlacement()
+
             _isVisibleOverlay.update {
                 false
             }
@@ -367,6 +468,8 @@ internal class HomeViewModel @Inject constructor(
             moveGridItemJob?.cancelAndJoin()
 
             gridRepository.deleteGridItemById(gridItem = gridItem)
+
+            clearPendingWidgetPlacementIfMatches(gridItem = gridItem)
 
             _moveGridItemResult.update {
                 null
@@ -399,6 +502,8 @@ internal class HomeViewModel @Inject constructor(
     fun deleteGridItem(gridItem: GridItem) {
         viewModelScope.launch {
             gridRepository.deleteGridItem(gridItem = gridItem)
+
+            clearPendingWidgetPlacementIfMatches(gridItem = gridItem)
         }
     }
 
@@ -577,6 +682,8 @@ internal class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             moveGridItemJob?.cancelAndJoin()
 
+            clearPendingWidgetPlacement()
+
             _isVisibleOverlay.update {
                 false
             }
@@ -662,6 +769,16 @@ internal class HomeViewModel @Inject constructor(
         }
     }
 
+    fun updateWidgetGridItem(gridItem: GridItem) {
+        if (gridItem.data is GridItemData.Widget) {
+            savedStateHandle[PENDING_UPDATED_WIDGET_GRID_ITEM_KEY] = json.encodeToString(gridItem)
+        }
+
+        _updatedWidgetGridItem.update {
+            gridItem
+        }
+    }
+
     fun updateResizeGridItem(resizeGridItem: GridItem) {
         _resizeGridItem.update {
             resizeGridItem
@@ -672,5 +789,12 @@ internal class HomeViewModel @Inject constructor(
         _folderPopupEntries.update {
             it - folderPopupEntry
         }
+    }
+
+    companion object {
+        private const val PENDING_MOVE_GRID_ITEM_RESULT_KEY = "pendingMoveGridItemResult"
+        private const val PENDING_UPDATED_WIDGET_GRID_ITEM_KEY = "pendingUpdatedWidgetGridItem"
+        private const val PENDING_GRID_ITEM_SOURCE_KEY = "pendingGridItemSource"
+        private const val PENDING_GRID_ITEM_SOURCE_NEW = "new"
     }
 }

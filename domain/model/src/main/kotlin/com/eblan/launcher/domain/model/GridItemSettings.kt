@@ -17,6 +17,9 @@
  */
 package com.eblan.launcher.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class GridItemSettings(
     val iconSize: Int,
     val textColor: TextColor,
@@ -31,12 +34,14 @@ data class GridItemSettings(
     val cornerRadius: Int,
 )
 
+@Serializable
 enum class HorizontalAlignment {
     Start,
     CenterHorizontally,
     End,
 }
 
+@Serializable
 enum class VerticalArrangement {
     Top,
     Center,

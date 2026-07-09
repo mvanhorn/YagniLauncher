@@ -147,6 +147,7 @@ internal fun PagerScreen(
     textColor: TextColor,
     resizeGridItem: GridItem?,
     gridItemSource: GridItemSource?,
+    updatedWidgetGridItem: GridItem?,
     isVisibleOverlay: Boolean,
     onDeleteGridItem: (GridItem) -> Unit,
     onResetGridAfterDeleteGridItem: (GridItem) -> Unit,
@@ -215,6 +216,8 @@ internal fun PagerScreen(
     onUpdateGridItemSource: (GridItemSource) -> Unit,
     onUpdateIsVisibleOverlay: (Boolean) -> Unit,
     onUpdateMoveGridItemResult: (MoveGridItemResult) -> Unit,
+    onUpdatePendingWidgetPlacement: (MoveGridItemResult, GridItemSource) -> Unit,
+    onUpdateWidgetGridItem: (GridItem) -> Unit,
     onUpdateResizeGridItem: (GridItem) -> Unit,
     onResetGrid: () -> Unit,
 ) {
@@ -298,6 +301,7 @@ internal fun PagerScreen(
         pagerScreenState.handleAppWidgetLauncherResult(
             moveGridItemResult = moveGridItemResult,
             result = result,
+            onUpdateWidgetGridItem = onUpdateWidgetGridItem,
         )
     }
 
@@ -446,6 +450,8 @@ internal fun PagerScreen(
             onResetGridAfterDeleteGridItem = onResetGridAfterDeleteGridItem,
             onResetGrid = onResetGrid,
             onUpdateGridItemsAfterMove = onUpdateGridItemsAfterMove,
+            onUpdatePendingWidgetPlacement = onUpdatePendingWidgetPlacement,
+            onUpdateWidgetGridItem = onUpdateWidgetGridItem,
         )
     }
 
@@ -456,17 +462,22 @@ internal fun PagerScreen(
         )
     }
 
-    LaunchedEffect(key1 = pagerScreenState.updatedWidgetGridItem) {
-        handleBoundWidgetEffect(
-            activity = activity,
-            androidAppWidgetHostWrapper = androidAppWidgetHostWrapper,
-            gridItemSource = gridItemSource,
-            moveGridItemResult = moveGridItemResult,
-            updatedWidgetGridItem = pagerScreenState.updatedWidgetGridItem,
-            onDeleteGridItem = onResetGridAfterDeleteGridItem,
-            onUpdateGridItemsAfterMove = onUpdateGridItemsAfterMove,
-            onResetGrid = onResetGrid,
-        )
+    LaunchedEffect(
+        key1 = updatedWidgetGridItem,
+        key2 = configureResultCode,
+    ) {
+        if (configureResultCode == null) {
+            handleBoundWidgetEffect(
+                activity = activity,
+                androidAppWidgetHostWrapper = androidAppWidgetHostWrapper,
+                gridItemSource = gridItemSource,
+                moveGridItemResult = moveGridItemResult,
+                updatedWidgetGridItem = updatedWidgetGridItem,
+                onDeleteGridItem = onResetGridAfterDeleteGridItem,
+                onUpdateGridItemsAfterMove = onUpdateGridItemsAfterMove,
+                onResetGrid = onResetGrid,
+            )
+        }
     }
 
     LaunchedEffect(key1 = gridHorizontalPagerState) {
@@ -493,7 +504,7 @@ internal fun PagerScreen(
         handleConfigureLauncherResultEffect(
             moveGridItemResult = moveGridItemResult,
             resultCode = configureResultCode,
-            updatedGridItem = pagerScreenState.updatedWidgetGridItem,
+            updatedGridItem = updatedWidgetGridItem,
             onDeleteGridItem = onDeleteGridItem,
             onUpdateGridItemsAfterMove = onUpdateGridItemsAfterMove,
             onResetConfigureResultCode = onResetConfigureResultCode,

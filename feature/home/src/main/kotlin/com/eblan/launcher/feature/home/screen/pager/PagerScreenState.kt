@@ -170,9 +170,6 @@ internal class PagerScreenState(
     var deleteAppWidgetId by mutableStateOf(false)
         private set
 
-    var updatedWidgetGridItem by mutableStateOf<GridItem?>(null)
-        private set
-
     var gridPageDirection by mutableStateOf<PageDirection?>(null)
         private set
 
@@ -428,6 +425,8 @@ internal class PagerScreenState(
         onResetGridAfterDeleteGridItem: (GridItem) -> Unit,
         onResetGrid: () -> Unit,
         onUpdateGridItemsAfterMove: (MoveGridItemResult) -> Unit,
+        onUpdatePendingWidgetPlacement: (MoveGridItemResult, GridItemSource) -> Unit,
+        onUpdateWidgetGridItem: (GridItem) -> Unit,
     ) {
         handleDropGridItem(
             androidAppWidgetHostWrapper = androidAppWidgetHostWrapper,
@@ -453,9 +452,8 @@ internal class PagerScreenState(
             onUpdateIsDragging = {
                 isDragging = it
             },
-            onUpdateWidgetGridItem = {
-                updatedWidgetGridItem = it
-            },
+            onUpdateWidgetGridItem = onUpdateWidgetGridItem,
+            onUpdatePendingWidgetPlacement = onUpdatePendingWidgetPlacement,
             onUpdateIsVisibleOverlay = onUpdateIsVisibleOverlay,
         )
     }
@@ -469,7 +467,6 @@ internal class PagerScreenState(
             deleteAppWidgetId = deleteAppWidgetId,
             moveGridItemResult = moveGridItemResult,
             onResetGridAfterDeleteGridItem = onResetGridAfterDeleteGridItem,
-            onDeleteAppWidgetId = androidAppWidgetHostWrapper::deleteAppWidgetId,
             onResetAppWidgetId = {
                 lastAppWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
@@ -544,6 +541,7 @@ internal class PagerScreenState(
     fun handleAppWidgetLauncherResult(
         moveGridItemResult: MoveGridItemResult?,
         result: ActivityResult,
+        onUpdateWidgetGridItem: (GridItem) -> Unit,
     ) {
         handleAppWidgetLauncherResult(
             androidAppWidgetManagerWrapper = androidAppWidgetManagerWrapper,
@@ -553,7 +551,7 @@ internal class PagerScreenState(
                 deleteAppWidgetId = true
             },
             onUpdateWidgetGridItem = {
-                updatedWidgetGridItem = it
+                onUpdateWidgetGridItem(it)
             },
         )
     }
@@ -1342,12 +1340,13 @@ internal class PagerScreenState(
                 listOf(
                     it.lastSwipeUpY,
                     it.lastSwipeDownY,
+                    it.lastAppWidgetId,
                 )
             },
             restore = {
                 PagerScreenState(
-                    initialSwipeUpY = it[0],
-                    initialSwipeDownY = it[1],
+                    initialSwipeUpY = it[0] as Float,
+                    initialSwipeDownY = it[1] as Float,
                     screenWidth = screenWidth,
                     screenHeight = screenHeight,
                     fileManager = fileManager,
@@ -1367,7 +1366,9 @@ internal class PagerScreenState(
                     iconKeyGenerator = iconKeyGenerator,
                     onGetPinGridItem = onGetPinGridItem,
                     onResetPinGridItem = onResetPinGridItem,
-                )
+                ).apply {
+                    lastAppWidgetId = it[2] as Int
+                }
             },
         )
     }

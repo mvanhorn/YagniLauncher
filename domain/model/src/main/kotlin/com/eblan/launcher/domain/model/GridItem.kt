@@ -17,6 +17,9 @@
  */
 package com.eblan.launcher.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class GridItem(
     val id: String,
     val page: Int,
@@ -33,6 +36,7 @@ data class GridItem(
     val swipeDown: EblanAction,
 )
 
+@Serializable
 enum class Associate {
     Grid,
     Dock,

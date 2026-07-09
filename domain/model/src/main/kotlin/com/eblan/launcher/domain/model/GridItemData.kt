@@ -17,7 +17,11 @@
  */
 package com.eblan.launcher.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 sealed interface GridItemData {
+    @Serializable
     data class ApplicationInfo(
         val serialNumber: Long,
         val componentName: String,
@@ -31,6 +35,7 @@ sealed interface GridItemData {
         val iconPackInfoFilePath: String?,
     ) : GridItemData
 
+    @Serializable
     data class Widget(
         val appWidgetId: Int,
         val componentName: String,
@@ -51,6 +56,7 @@ sealed interface GridItemData {
         val icon: String?,
     ) : GridItemData
 
+    @Serializable
     data class ShortcutInfo(
         val shortcutId: String,
         val packageName: String,
@@ -66,6 +72,7 @@ sealed interface GridItemData {
         val folderId: String?,
     ) : GridItemData
 
+    @Serializable
     data class Folder(
         val id: String,
         val label: String,
@@ -79,6 +86,7 @@ sealed interface GridItemData {
         val folderId: String?,
     ) : GridItemData
 
+    @Serializable
     data class ShortcutConfig(
         val serialNumber: Long,
         val componentName: String,

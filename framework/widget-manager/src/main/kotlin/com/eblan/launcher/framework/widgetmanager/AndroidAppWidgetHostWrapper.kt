@@ -31,8 +31,6 @@ interface AndroidAppWidgetHostWrapper {
 
     fun allocateAppWidgetId(): Int
 
-    fun deleteAppWidgetId(appWidgetId: Int)
-
     fun createView(
         appWidgetId: Int,
         appWidgetProviderInfo: AppWidgetProviderInfo,

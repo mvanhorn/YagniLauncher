@@ -17,6 +17,9 @@
  */
 package com.eblan.launcher.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class TextColor {
     System,
     Light,

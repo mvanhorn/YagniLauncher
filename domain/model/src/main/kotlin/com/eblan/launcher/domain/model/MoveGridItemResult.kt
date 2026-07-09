@@ -17,6 +17,9 @@
  */
 package com.eblan.launcher.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class MoveGridItemResult(
     val isSuccess: Boolean,
     val movingGridItem: GridItem,

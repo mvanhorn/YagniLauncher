@@ -112,6 +112,8 @@ internal fun HomeRoute(
 
     val gridItemSource by viewModel.gridItemSource.collectAsStateWithLifecycle()
 
+    val updatedWidgetGridItem by viewModel.updatedWidgetGridItem.collectAsStateWithLifecycle()
+
     val isVisibleOverlay by viewModel.isVisibleOverlay.collectAsStateWithLifecycle()
 
     HomeScreen(
@@ -131,6 +133,7 @@ internal fun HomeRoute(
         screen = screen,
         resizeGridItem = resizeGridItem,
         gridItemSource = gridItemSource,
+        updatedWidgetGridItem = updatedWidgetGridItem,
         isVisibleOverlay = isVisibleOverlay,
         onResetGrid = viewModel::resetGrid,
         onDeleteGridItem = viewModel::deleteGridItem,
@@ -166,6 +169,8 @@ internal fun HomeRoute(
         onUpdateGridItemSource = viewModel::updateGridItemSource,
         onUpdateIsVisibleOverlay = viewModel::updateIsVisibleOverlay,
         onUpdateMoveGridItemResult = viewModel::updateMoveGridItemResult,
+        onUpdatePendingWidgetPlacement = viewModel::updatePendingWidgetPlacement,
+        onUpdateWidgetGridItem = viewModel::updateWidgetGridItem,
         onUpdateResizeGridItem = viewModel::updateResizeGridItem,
     )
 }
@@ -189,6 +194,7 @@ internal fun HomeScreen(
     screen: Screen,
     resizeGridItem: GridItem?,
     gridItemSource: GridItemSource?,
+    updatedWidgetGridItem: GridItem?,
     isVisibleOverlay: Boolean,
     onResetGrid: () -> Unit,
     onDeleteGridItem: (GridItem) -> Unit,
@@ -264,6 +270,8 @@ internal fun HomeScreen(
     onUpdateGridItemSource: (GridItemSource) -> Unit,
     onUpdateIsVisibleOverlay: (Boolean) -> Unit,
     onUpdateMoveGridItemResult: (MoveGridItemResult) -> Unit,
+    onUpdatePendingWidgetPlacement: (MoveGridItemResult, GridItemSource) -> Unit,
+    onUpdateWidgetGridItem: (GridItem) -> Unit,
     onUpdateResizeGridItem: (GridItem) -> Unit,
 ) {
     val paddingValues = WindowInsets.safeDrawing.asPaddingValues()
@@ -297,6 +305,7 @@ internal fun HomeScreen(
                 screenWidth = screenIntSize.width,
                 resizeGridItem = resizeGridItem,
                 gridItemSource = gridItemSource,
+                updatedWidgetGridItem = updatedWidgetGridItem,
                 isVisibleOverlay = isVisibleOverlay,
                 onResetGrid = onResetGrid,
                 onDeleteGridItem = onDeleteGridItem,
@@ -332,6 +341,8 @@ internal fun HomeScreen(
                 onUpdateGridItemSource = onUpdateGridItemSource,
                 onUpdateIsVisibleOverlay = onUpdateIsVisibleOverlay,
                 onUpdateMoveGridItemResult = onUpdateMoveGridItemResult,
+                onUpdatePendingWidgetPlacement = onUpdatePendingWidgetPlacement,
+                onUpdateWidgetGridItem = onUpdateWidgetGridItem,
                 onUpdateResizeGridItem = onUpdateResizeGridItem,
             )
         }
@@ -360,6 +371,7 @@ private fun Success(
     screenWidth: Int,
     resizeGridItem: GridItem?,
     gridItemSource: GridItemSource?,
+    updatedWidgetGridItem: GridItem?,
     isVisibleOverlay: Boolean,
     onResetGrid: () -> Unit,
     onDeleteGridItem: (GridItem) -> Unit,
@@ -435,6 +447,8 @@ private fun Success(
     onUpdateGridItemSource: (GridItemSource) -> Unit,
     onUpdateIsVisibleOverlay: (Boolean) -> Unit,
     onUpdateMoveGridItemResult: (MoveGridItemResult) -> Unit,
+    onUpdatePendingWidgetPlacement: (MoveGridItemResult, GridItemSource) -> Unit,
+    onUpdateWidgetGridItem: (GridItem) -> Unit,
     onUpdateResizeGridItem: (GridItem) -> Unit,
 ) {
     val activity = LocalActivity.current
@@ -478,6 +492,7 @@ private fun Success(
                     textColor = homeData.textColor,
                     resizeGridItem = resizeGridItem,
                     gridItemSource = gridItemSource,
+                    updatedWidgetGridItem = updatedWidgetGridItem,
                     isVisibleOverlay = isVisibleOverlay,
                     onDeleteGridItem = onDeleteGridItem,
                     onResetGridAfterDeleteGridItem = onResetGridAfterDeleteGridItem,
@@ -511,6 +526,8 @@ private fun Success(
                     onUpdateGridItemSource = onUpdateGridItemSource,
                     onUpdateIsVisibleOverlay = onUpdateIsVisibleOverlay,
                     onUpdateMoveGridItemResult = onUpdateMoveGridItemResult,
+                    onUpdatePendingWidgetPlacement = onUpdatePendingWidgetPlacement,
+                    onUpdateWidgetGridItem = onUpdateWidgetGridItem,
                     onUpdateResizeGridItem = onUpdateResizeGridItem,
                     onResetGrid = onResetGrid,
                 )
